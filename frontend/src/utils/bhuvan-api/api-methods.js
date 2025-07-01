@@ -38,19 +38,30 @@ export const getRouting = async (lat1, lon1, lat2, lon2) => {
     }
   };
   
-  export const getEllipsoid = async (id) => {
-    try {
-      const base = import.meta.env.VITE_BASE_URL;
-      const res = await fetch(
-        `${base}/api/bhuvan/ellipsoid?id=${id}`
-      );
-      if (!res.ok) throw new Error('Failed to fetch vehicle tracking data');
-      const json = await res.json();
-      return json;
-    } catch (err) {
-      return { error: err.message };
-    }
-  };
+ export const getEllipsoid = async (id) => {
+  try {
+    const base = import.meta.env.VITE_BASE_URL;
+    const res = await fetch(`${base}/api/bhuvan/ellipsoid?id=${id}`);
+    if (!res.ok) throw new Error('Failed to download ellipsoid file');
+
+    const blob = await res.blob(); 
+
+    // Create a link and trigger download
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${id}.zip`; 
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+
+    return { success: true };
+  } catch (err) {
+    return { error: err.message };
+  }
+};
+
   
   export const getFloodRunoff = async (catchmentId, outletLat, outletLon) => {
     try {

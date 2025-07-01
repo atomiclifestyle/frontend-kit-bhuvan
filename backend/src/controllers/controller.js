@@ -1,9 +1,9 @@
 const axios = require('axios');
-const { HttpsProxyAgent } = require('https-proxy-agent');
+// const { HttpsProxyAgent } = require('https-proxy-agent');
 
-const proxy = process.env.PROXY;
+// const proxy = process.env.PROXY;
 
-const proxyAgent = new HttpsProxyAgent("http://bhuvan:NRSC%40User@172.31.7.55:8080");
+// const proxyAgent = new HttpsProxyAgent(process.env.PROXY);
 
 const bhuvanApiRequest = async (url, method = 'GET', data = null) => {
   try {
@@ -35,8 +35,8 @@ exports.getRouting = async (req, res) => {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      httpsAgent: proxyAgent,
-      proxy: false,
+      // httpsAgent: proxyAgent,
+      // proxy: false,
     });
     res.status(response.status).json(response.data);
   } catch (error) {
@@ -61,8 +61,6 @@ exports.getThematicData = async (req, res) => {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      httpsAgent: proxyAgent,
-      proxy: false,
     });
     res.status(response.status).json(response.data);
   } catch (error) {
@@ -87,11 +85,7 @@ exports.villageGeocoding = async (req, res) => {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      httpsAgent: proxyAgent,
-      proxy: false,
     });
-    console.log(url);
-    console.log(response);
     res.status(response.status).json(response.data);
   } catch (error) {
     if (error.response) {
@@ -111,15 +105,14 @@ exports.getEllipsoid = async (req, res) => {
 
   try {
     const response = await axios.get(url, {
+      responseType: "stream",
       timeout: 10000,
       headers: {
         'Content-Type': 'application/zip',
         'Contend-Deposition': 'attachment',
       },
-      httpsAgent: proxyAgent,
-      proxy: false,
     });
-    res.status(response.status).json(response.data);
+    response.data.pipe(res);
   } catch (error) {
     if (error.response) {
       res.status(error.response.status).json({
