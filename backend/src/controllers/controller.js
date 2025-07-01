@@ -1,7 +1,9 @@
 const axios = require('axios');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 
-const proxyAgent = new HttpsProxyAgent('http://bhuvan:NRSC%40User@172.31.7.55:8080');
+const proxy = process.env.PROXY;
+
+const proxyAgent = new HttpsProxyAgent("http://bhuvan:NRSC%40User@172.31.7.55:8080");
 
 const bhuvanApiRequest = async (url, method = 'GET', data = null) => {
   try {
@@ -88,6 +90,8 @@ exports.villageGeocoding = async (req, res) => {
       httpsAgent: proxyAgent,
       proxy: false,
     });
+    console.log(url);
+    console.log(response);
     res.status(response.status).json(response.data);
   } catch (error) {
     if (error.response) {
