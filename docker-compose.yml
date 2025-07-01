@@ -8,10 +8,15 @@ services:
     container_name: node_backend
     ports:
       - "5000:5000"
+    environment: 
+      ROUTE_TOKEN: ${ROUTE_TOKEN}
+      GEOID_TOKEN: ${GEOID_TOKEN}
+      VG_TOKEN: ${VG_TOKEN}
+      THEMATIC_TOKEN: ${THEMATIC_TOKEN}
+      NODE_ENV: development
     volumes:
       - ./backend:/usr/src/app
-    environment:
-      - NODE_ENV=development
+      - /usr/src/app/node_modules
 
   frontend:
     build:
@@ -20,5 +25,7 @@ services:
     container_name: react_frontend
     ports:
       - "8080:8080"
+    environment:
+      VITE_BASE_URL: "https://sturdy-journey-7v5xr4qr5qg2rxx6-5000.github.dev"
     depends_on:
       - backend
