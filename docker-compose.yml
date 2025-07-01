@@ -26,6 +26,6 @@ services:
     ports:
       - "8080:8080"
     environment:
-      VITE_BASE_URL: "https://sturdy-journey-7v5xr4qr5qg2rxx6-5000.github.dev"
+      VITE_BASE_URL: "https://${CODESPACE_NAME}-5000.github.dev"
     depends_on:
       - backend
