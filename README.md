@@ -16,25 +16,6 @@ This project provides a development environment for building frontend applicatio
 
 To build and run the project locally:
 ```bash
-docker-compose up --build
-```
-
-### File Structure
-
-```
-/
-├── backend/               # Express-based proxy backend
-│   └── .env               # API token environment file
-├── frontend/              # React frontend
-├── docker-compose.yml     # Container configuration
-
-```
-### Environment Variables
-
-```
-ROUTING_TOKEN=your_token_here
-GEOID_TOKEN=your_token_here
-VILLAGE_GEOCODING_TOKEN=your_token_here
-LULC_STATISTICS_TOKEN=your_token_here
-LULC_AOI_TOKEN=your_token_here
+docker build -t <App Name> .
+docker run -p 8080:8080 <App Name>
 ```
