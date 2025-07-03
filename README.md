@@ -14,8 +14,14 @@ This project provides a development environment for building frontend applicatio
 
 ## Getting Started
 
-To build and run the project locally:
+To build and run the project locally (By Docker):
 ```bash
 docker build -t <App Name> .
 docker run -p 8080:8080 <App Name>
+```
+
+To build and run the project locally (During Development):
+```bash
+npm install
+npm run dev
 ```
