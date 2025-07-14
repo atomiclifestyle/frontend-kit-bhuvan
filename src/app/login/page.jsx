@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input"
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
+import SpaceBackground from '@/components/SpaceBackground';
 
 // Validation for form
 const formSchema = z.object({
@@ -62,8 +63,9 @@ const LoginForm = () => {
   }
 
  return (
-  <div className='h-[100vh] w-[100vw] flex justify-center items-center'>
-    <div className='w-[90%] md:w-[50%] lg:w-[30%] rounded-2xl shadow-2xl p-10'>
+  <div className='h-[100vh] w-[100vw] flex justify-center items-center bg-gray-900 text-gray-100'>
+    <SpaceBackground />
+    <div className='w-[90%] md:w-[50%] lg:w-[30%] rounded-2xl shadow-2xl p-10 relative z-10'>
       <Form {...form} onSubmit={form.handleSubmit(onSubmit)}>
         <h1 className='text-2xl font-semibold text-center m-3'>Login to your Account</h1>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
