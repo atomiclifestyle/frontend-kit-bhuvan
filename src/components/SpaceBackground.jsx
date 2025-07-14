@@ -1,30 +1,3 @@
-const generateStars = (count, maxWidth, maxHeight) => {
-  let shadows = '';
-  for (let i = 0; i < count; i++) {
-    const x = Math.random() * maxWidth;
-    const y = Math.random() * maxHeight;
-    // Brighter color palette: white, light blue, and yellowish
-    const color = Math.random() > 0.7 ? '#FFFFFF' : Math.random() > 0.4 ? '#A6CFFF' : '#FFF9A3';
-    const size = Math.random() > 0.9 ? '3px' : '2px'; // Slightly larger for visibility
-    shadows += `${x}px ${y}px ${size} ${color}, `;
-  }
-  return shadows.slice(0, -2);
-};
-
-// StarLayer component with dynamic animation
-const StarLayer = ({ count, speed, maxWidth, maxHeight }) => {
-  const shadows = generateStars(count, maxWidth, maxHeight);
-  return (
-    <div
-      className="absolute top-0 left-0 w-[4000px] h-[2000px] will-change-transform pointer-events-none"
-      style={{
-        boxShadow: shadows,
-        animation: `moveStars ${speed}s linear infinite`,
-      }}
-    />
-  );
-};
-
 // Nebula component with brighter, more vibrant glow
 const Nebula = () => (
   <div
@@ -45,9 +18,21 @@ const SpaceBackground = () => {
   return (
     <div className="absolute inset-0 overflow-hidden z-0">
       <Nebula />
-      <StarLayer count={100} speed={80} maxWidth={maxWidth} maxHeight={maxHeight} />
-      <StarLayer count={60} speed={120} maxWidth={maxWidth} maxHeight={maxHeight} />
-      <StarLayer count={40} speed={160} maxWidth={maxWidth} maxHeight={maxHeight} />
+      <div className="absolute inset-0 opacity-30">
+            {[...Array(100)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute bg-white rounded-full"
+                style={{
+                  width: Math.random() * 4 + 1 + 'px',
+                  height: Math.random() * 4 + 1 + 'px',
+                  left: Math.random() * 100 + '%',
+                  top: Math.random() * 100 + '%',
+                  animation: `twinkle ${Math.random() * 5 + 5}s infinite`,
+                }}
+              />
+            ))}
+          </div>
     </div>
   );
 };
