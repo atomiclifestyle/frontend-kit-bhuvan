@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { getRouting, getThematicData, villageGeocoding, getEllipsoid } from '@/utils/bhuvan-api-methods';
 import '@/app/globals.css';
 import SpaceBackground from '@/components/SpaceBackground';
+import { useSession } from 'next-auth/react';
 
     function DemoApp() {
       const [routingData, setRoutingData] = useState(null);
       const [thematicData, setThematicData] = useState(null);
       const [vgData, setVgData] = useState(null);
+      const { data: session, status } = useSession();
       
       // State for input fields
       const [routingInputs, setRoutingInputs] = useState({

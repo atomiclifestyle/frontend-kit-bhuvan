@@ -30,62 +30,56 @@ import SpaceBackground from '@/components/SpaceBackground';
 // Validation schema
 const formSchema = z
   .object({
-    full_name: z.string().min(2, {
+    username: z.string().min(2, {
       message: "Username must be at least 2 characters.",
     }),
-    mobile_number: z
-      .string()
-      .length(10, { message: "Phone number must be exactly 10 digits." })
-      .regex(/^[6-9]\d{9}$/, {
-        message: "Phone number must start with 6, 7, 8, or 9.",
-      }),
     password: z
       .string()
       .min(8, { message: "Password must be at least 8 characters." })
-      .regex(/[A-Z]/, {
-        message: "Password must contain at least one uppercase letter.",
-      })
-      .regex(/[a-z]/, {
-        message: "Password must contain at least one lowercase letter.",
-      })
-      .regex(/[0-9]/, { message: "Password must contain at least one number." })
-      .regex(/[?!@#$%^&*]/, {
-        message: "Password must contain at least one special character.",
-      }),
+      .regex(/[0-9]/, { message: "Password must contain at least one number." }),
     confirmPass: z.string(),
+  })
+    .refine((data) => data.password === data.confirmPass, {
+      message: "Passwords do not match.",
+      path: ["confirmPass"], 
   });
 
 const SignInForm = () => {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       password: "",
-      full_name: "",
-      mobile_number: "",
+      username: "",
       confirmPass: "",
     },
   });
 
   async function onSubmit(data) {
-    // const { confirmPass, ...userData } = data;
-    // console.log(userData);
-    // const res = await fetch(
-    //   `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/signup`,
-    //   {
-    //     method: "POST",
-    //     headers: {
-    //       "Content-Type": "application/json",
-    //     },
-    //     body: JSON.stringify(userData),
-    //   }
-    // );
-    // const response = await res.json();
-    // if (res.ok) {
-    //   router.push('/login')
-    // }
-    // console.log(response);
-  }
+    setLoading(true);
+    try {
+      const { confirmPass, ...userData } = data;
+      const res = await fetch(`/api/auth/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData),
+      });
+
+      const response = await res.json();
+      console.log(response);
+
+      if (res.ok) {
+        router.push("/login");
+      }
+    } catch (error) {
+      console.error("Signup error:", error);
+    } finally {
+      setLoading(false);
+    }
+}
 
   const [hiddenPassword, setHiddenPassword] = useState(true);
   function viewPassword() {
@@ -96,14 +90,14 @@ const SignInForm = () => {
     <div className='h-[100vh] w-[100vw] flex justify-center items-center bg-gray-900 text-gray-100'>
       <SpaceBackground />
       <div className='w-[90%] md:w-[50%] lg:w-[30%] rounded-2xl shadow-2xl p-10 relative bg-white text-black z-10'>
-      <Form {...form} onSubmit={form.handleSubmit(onSubmit)}>
+      <Form {...form}>
         <h1 className="text-2xl font-semibold text-center m-3 my-4">
           Create New Account
         </h1>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <FormField
             control={form.control}
-            name="full_name"
+            name="username"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="font-semibold text-[15px]">
@@ -120,28 +114,6 @@ const SignInForm = () => {
               </FormItem>
             )}
           />
-
-          <div className="flex gap-2 w-full">
-            <FormField
-              control={form.control}
-              name="mobile_number"
-              render={({ field }) => (
-                <FormItem className="w-1/2">
-                  <FormLabel className="font-semibold text-[15px]">
-                    Phone Number<span className="text-red-600">*</span>
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Enter Phone Number"
-                      className="h-12"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
 
           <FormField
             control={form.control}
@@ -192,8 +164,8 @@ const SignInForm = () => {
             )}
           />
 
-          <Button className="w-full h-12" type="submit">
-            Sign Up
+          <Button className="w-full h-12" type="submit" disabled={loading}>
+            {loading ? "Signing up..." : "Sign Up"}
           </Button>
 
           {/* 👇 Login Link */}
