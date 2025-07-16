@@ -49,7 +49,7 @@ const LoginForm = () => {
         password: data.password,
       })
       if (res && res.ok) {
-        router.push('/');
+        router.push('/main');
       } else {
         console.log(res);
       }

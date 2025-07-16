@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { getRouting, getThematicData, villageGeocoding, getEllipsoid } from '@/utils/bhuvan-api-methods';
+import { getRouting, getThematicData, villageGeocoding, getEllipsoid } from 'bhuvan-api';
 import '@/app/globals.css';
 import SpaceBackground from '@/components/SpaceBackground';
 import { useSession } from 'next-auth/react';
