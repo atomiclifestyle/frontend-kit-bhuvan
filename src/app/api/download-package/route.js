@@ -137,6 +137,30 @@ export const executeQuery = async (query) => {
       return { error: err.message };
     }
 };
+
+export const executeCentralQuery = async (query) => {
+    try {
+      const res = await fetch(
+        \`\${base}/api/bhuvan/execute-central-query\`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': '${user_id}'
+          },
+          body: {
+              query: JSON.stringify({ query })
+          }
+        }
+      );
+      if (!res.ok) throw new Error('Failed');
+      const json = await res.json();
+      return json;
+    } catch (err) {
+      return { error: err.message };
+    }
+};
+
 `;
 
 export async function GET(request) {
