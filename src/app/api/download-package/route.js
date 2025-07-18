@@ -181,6 +181,7 @@ export async function GET(request) {
         version: "1.0.0",
         description: "Bhuvan API client functions",
         main: "bhuvan-api.js",
+        types: "bhuvan-api.d.ts",
         type: "module",
         keywords: ["bhuvan", "api", "client"],
         author: "Your Name",
@@ -190,10 +191,21 @@ export async function GET(request) {
       null,
       2
     );
+    const dtsContent = `
+      export function getRouting(lat1: number, lon1: number, lat2: number, lon2: number): Promise<any>;
+      export function getThematicData(lat: number, lon: number, year: number): Promise<any>;
+      export function villageGeocoding(category: string): Promise<any>;
+      export function getEllipsoid(id: string): Promise<any>;
+      export function createUser(): Promise<any>;
+      export function executeQuery(query: string): Promise<any>;
+      export function executeCentralQuery(query: string): Promise<any>;
+      `;
 
     // Write files to tar stream with user_id injected into functionsContent
     pack.entry({ name: "bhuvan-api/package.json" }, packageJsonContent);
     pack.entry({ name: "bhuvan-api/bhuvan-api.js" }, functionsContent(user_id));
+    pack.entry({ name: "bhuvan-api/bhuvan-api.d.ts" }, dtsContent);
+
     pack.finalize();
 
     pack.pipe(stream);

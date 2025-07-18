@@ -101,11 +101,11 @@ const SignInForm = () => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="font-semibold text-[15px]">
-                  Name<span className="text-red-600">*</span>
+                  Username<span className="text-red-600">*</span>
                 </FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Input your name"
+                    placeholder="Input your username"
                     className="h-12 "
                     {...field}
                   />
