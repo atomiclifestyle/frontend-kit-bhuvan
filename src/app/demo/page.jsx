@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { getRouting, getThematicData, villageGeocoding, getEllipsoid } from 'bhuvan-api';
+import { getRouting, getThematicData, villageGeocoding, getEllipsoid } from '@/utils/bhuvan-api-methods';
 import '@/app/globals.css';
 import SpaceBackground from '@/components/SpaceBackground';
 import { useSession } from 'next-auth/react';
@@ -43,7 +43,7 @@ function DemoApp() {
                 parseFloat(startLat),
                 parseFloat(startLon),
                 parseFloat(endLat),
-                parseFloat(endLon)
+                parseFloat(endLon), session.user_id
             );
             setRoutingData(result);
         } catch (error) {
@@ -61,7 +61,7 @@ function DemoApp() {
             const result = await getThematicData(
                 parseFloat(lat),
                 parseFloat(lon),
-                date
+                date, session.user_id
             );
             setThematicData(result);
         } catch (error) {
@@ -75,7 +75,7 @@ function DemoApp() {
     const handleGeocoding = async () => {
         setLoading(prev => ({ ...prev, geocoding: true }));
         try {
-            const result = await villageGeocoding(villageInput);
+            const result = await villageGeocoding(villageInput, session.user_id);
             setVgData(result);
         } catch (error) {
             console.error("Geocoding error:", error);
@@ -89,7 +89,7 @@ function DemoApp() {
         setLoading(prev => ({ ...prev, ellipsoid: true }));
         setEllipsoidStatus({ message: '', type: 'idle' }); // Reset status on new request
         try {
-            const result = await getEllipsoid(ellipsoidInput);
+            const result = await getEllipsoid(ellipsoidInput, session.user_id);
             if (result.error) {
                 setEllipsoidStatus({ message: `Download failed: ${result.error}`, type: 'error' });
             } else {
