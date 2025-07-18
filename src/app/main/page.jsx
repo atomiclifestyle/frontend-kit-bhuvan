@@ -42,7 +42,21 @@ const MainPage = () => {
                     href="/demo"
                     className="w-full py-3 rounded-xl font-semibold bg-blue-500 text-white hover:bg-blue-600 transition transform hover:scale-105 shadow-md"
                     >
-                    Demo
+                    Bhuvan API Demo
+                    </a>
+
+                    <a
+                    href="/central-db"
+                    className="w-full py-3 rounded-xl font-semibold bg-blue-500 text-white hover:bg-blue-600 transition transform hover:scale-105 shadow-md"
+                    >
+                    Access Sample Data
+                    </a>
+
+                    <a
+                    href="/personal-db"
+                    className="w-full py-3 rounded-xl font-semibold bg-blue-500 text-white hover:bg-blue-600 transition transform hover:scale-105 shadow-md"
+                    >
+                    My Personal Database
                     </a>
 
                     <button

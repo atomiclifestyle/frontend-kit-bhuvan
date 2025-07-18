@@ -6,7 +6,7 @@ import '@/app/globals.css';
 import SpaceBackground from '@/components/SpaceBackground';
 import { useSession } from 'next-auth/react';
 
-    function DemoApp() {
+function DemoApp() {
       const [routingData, setRoutingData] = useState(null);
       const [thematicData, setThematicData] = useState(null);
       const [vgData, setVgData] = useState(null);
