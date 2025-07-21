@@ -59,7 +59,7 @@ const MainPage = () => {
                     My Personal Database
                     </a>
 
-                    <button
+{/*                     <button
                     onClick={handleDownload}
                     className="w-full py-3 rounded-xl font-semibold bg-blue-500 text-white hover:bg-blue-600 transition transform hover:scale-105 shadow-md"
                     >
@@ -71,6 +71,12 @@ const MainPage = () => {
                     className="w-full py-3 rounded-xl font-semibold bg-blue-500 text-white hover:bg-blue-600 transition transform hover:scale-105 shadow-md"
                     >
                     Contribute
+                    </a> */}
+                    <a
+                    href="https://www.npmjs.com/package/bhuvan-dev-env-client?activeTab=readme"
+                    className="w-full py-3 rounded-xl font-semibold bg-blue-500 text-white hover:bg-blue-600 transition transform hover:scale-105 shadow-md"
+                    >
+                    Bhuvan npm package
                     </a>
 
                     <GetUserIdButton />
