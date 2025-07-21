@@ -66,6 +66,13 @@ const MainPage = () => {
                     Download Package
                     </button>
 
+                    <a
+                    href="https://github.com/atomiclifestyle/bhuvan-projects-base"
+                    className="w-full py-3 rounded-xl font-semibold bg-blue-500 text-white hover:bg-blue-600 transition transform hover:scale-105 shadow-md"
+                    >
+                    Contribute
+                    </a>
+
                     <GetUserIdButton />
                 </div>
             </div>
