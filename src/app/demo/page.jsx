@@ -117,103 +117,141 @@ function DemoApp() {
         <div className="relative min-h-screen bg-gray-900 text-gray-100 p-6 md:p-8">
             <SpaceBackground />
             <div className="relative z-10 max-w-5xl mx-auto">
-                <h1 className="text-3xl md:text-4xl font-bold text-center text-blue-400 mb-8 tracking-tight">
-                    Bhuvan Development Demo
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-teal-300 mb-5">
+                    Bhuvan API Demo
                 </h1>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-2">
-                            {/* Input fields remain the same */}
-                             <input
-                                name="startLat"
-                                value={routingInputs.startLat}
-                                onChange={handleRoutingInputChange}
-                                placeholder="Start Latitude"
-                                className="bg-gray-800 text-white p-2 rounded-lg"
-                                type="number"
-                                step="any"
-                            />
-                            <input
-                                name="startLon"
-                                value={routingInputs.startLon}
-                                onChange={handleRoutingInputChange}
-                                placeholder="Start Longitude"
-                                className="bg-gray-800 text-white p-2 rounded-lg"
-                                type="number"
-                                step="any"
-                            />
-                            <input
-                                name="endLat"
-                                value={routingInputs.endLat}
-                                onChange={handleRoutingInputChange}
-                                placeholder="End Latitude"
-                                className="bg-gray-800 text-white p-2 rounded-lg"
-                                type="number"
-                                step="any"
-                            />
-                            <input
-                                name="endLon"
-                                value={routingInputs.endLon}
-                                onChange={handleRoutingInputChange}
-                                placeholder="End Longitude"
-                                className="bg-gray-800 text-white p-2 rounded-lg"
-                                type="number"
-                                step="any"
-                            />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+
+                    {/* --- Routing API Card --- */}
+                    <div className="bg-gray-800/50 p-4 rounded-lg space-y-4 border border-gray-700">
+                        <h3 className="text-lg font-semibold text-blue-300">Routing API</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="startLat" className="block mb-1 text-sm font-medium text-gray-400">Start Latitude</label>
+                                <input
+                                    id="startLat"
+                                    name="startLat"
+                                    value={routingInputs.startLat}
+                                    onChange={handleRoutingInputChange}
+                                    placeholder="e.g., 17.3850"
+                                    className="w-full bg-gray-700 text-white p-2 rounded-lg"
+                                    type="number"
+                                    step="any"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="startLon" className="block mb-1 text-sm font-medium text-gray-400">Start Longitude</label>
+                                <input
+                                    id="startLon"
+                                    name="startLon"
+                                    value={routingInputs.startLon}
+                                    onChange={handleRoutingInputChange}
+                                    placeholder="e.g., 78.4867"
+                                    className="w-full bg-gray-700 text-white p-2 rounded-lg"
+                                    type="number"
+                                    step="any"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="endLat" className="block mb-1 text-sm font-medium text-gray-400">End Latitude</label>
+                                <input
+                                    id="endLat"
+                                    name="endLat"
+                                    value={routingInputs.endLat}
+                                    onChange={handleRoutingInputChange}
+                                    placeholder="e.g., 17.4375"
+                                    className="w-full bg-gray-700 text-white p-2 rounded-lg"
+                                    type="number"
+                                    step="any"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="endLon" className="block mb-1 text-sm font-medium text-gray-400">End Longitude</label>
+                                <input
+                                    id="endLon"
+                                    name="endLon"
+                                    value={routingInputs.endLon}
+                                    onChange={handleRoutingInputChange}
+                                    placeholder="e.g., 78.4483"
+                                    className="w-full bg-gray-700 text-white p-2 rounded-lg"
+                                    type="number"
+                                    step="any"
+                                />
+                            </div>
                         </div>
                         <button
                             onClick={handleGetRouting}
-                            disabled={loading.routing} // MODIFICATION
+                            disabled={loading.routing}
                             className="w-full bg-blue-600 text-white font-medium py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-md hover:shadow-lg disabled:bg-blue-900 disabled:cursor-not-allowed"
                         >
-                            {loading.routing ? 'Fetching...' : 'Fetch Routing API'} {/* MODIFICATION */}
+                            {loading.routing ? 'Fetching...' : 'Fetch Routing API'}
                         </button>
                     </div>
 
-                    <div className="space-y-4">
-                         <div className="grid grid-cols-2 gap-2">
-                           <input
-                                name="lat"
-                                value={thematicInputs.lat}
-                                onChange={handleThematicInputChange}
-                                placeholder="Latitude"
-                                className="bg-gray-800 text-white p-2 rounded-lg"
-                                type="number"
-                                step="any"
-                            />
-                            <input
-                                name="lon"
-                                value={thematicInputs.lon}
-                                onChange={handleThematicInputChange}
-                                placeholder="Longitude"
-                                className="bg-gray-800 text-white p-2 rounded-lg"
-                                type="number"
-                                step="any"
-                            />
-                            <input
-                                name="date"
-                                value={thematicInputs.date}
-                                onChange={handleThematicInputChange}
-                                placeholder="Date (YYYY_MM)"
-                                className="bg-gray-800 text-white p-2 rounded-lg col-span-2"
-                            />
+                    {/* --- Thematic Data Card --- */}
+                    <div className="bg-gray-800/50 p-4 rounded-lg space-y-4 border border-gray-700">
+                        <h3 className="text-lg font-semibold text-blue-300">Thematic Data</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="thematicLat" className="block mb-1 text-sm font-medium text-gray-400">Latitude</label>
+                                <input
+                                    id="thematicLat"
+                                    name="lat"
+                                    value={thematicInputs.lat}
+                                    onChange={handleThematicInputChange}
+                                    placeholder="e.g., 17.3850"
+                                    className="w-full bg-gray-700 text-white p-2 rounded-lg"
+                                    type="number"
+                                    step="any"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="thematicLon" className="block mb-1 text-sm font-medium text-gray-400">Longitude</label>
+                                <input
+                                    id="thematicLon"
+                                    name="lon"
+                                    value={thematicInputs.lon}
+                                    onChange={handleThematicInputChange}
+                                    placeholder="e.g., 78.4867"
+                                    className="w-full bg-gray-700 text-white p-2 rounded-lg"
+                                    type="number"
+                                    step="any"
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <label htmlFor="thematicDate" className="block mb-1 text-sm font-medium text-gray-400">Year</label>
+                                <input
+                                    id="thematicDate"
+                                    name="date"
+                                    value={thematicInputs.date}
+                                    onChange={handleThematicInputChange}
+                                    placeholder="YYYY_MM"
+                                    className="w-full bg-gray-700 text-white p-2 rounded-lg"
+                                />
+                            </div>
                         </div>
                         <button
                             onClick={handleGetThematicData}
                             disabled={loading.thematic}
                             className="w-full bg-blue-600 text-white font-medium py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-md hover:shadow-lg disabled:bg-blue-900 disabled:cursor-not-allowed"
                         >
-                             {loading.thematic ? 'Fetching...' : 'Fetch Thematic Data'}
+                            {loading.thematic ? 'Fetching...' : 'Fetch Thematic Data'}
                         </button>
                     </div>
 
-                    <div className="space-y-4">
-                        <input
-                            value={villageInput}
-                            onChange={(e) => setVillageInput(e.target.value)}
-                            placeholder="Village Name"
-                            className="w-full bg-gray-800 text-white p-2 rounded-lg"
-                        />
+                    {/* --- Village Geocoding Card --- */}
+                    <div className="bg-gray-800/50 p-4 rounded-lg space-y-4 border border-gray-700">
+                        <h3 className="text-lg font-semibold text-blue-300">Village Geocoding</h3>
+                        <div>
+                            <label htmlFor="villageName" className="block mb-1 text-sm font-medium text-gray-400">Village Name</label>
+                            <input
+                                id="villageName"
+                                value={villageInput}
+                                onChange={(e) => setVillageInput(e.target.value)}
+                                placeholder="Enter Village Name"
+                                className="w-full bg-gray-700 text-white p-2 rounded-lg"
+                            />
+                        </div>
                         <button
                             onClick={handleGeocoding}
                             disabled={loading.geocoding}
@@ -223,13 +261,19 @@ function DemoApp() {
                         </button>
                     </div>
 
-                    <div className="space-y-4">
-                        <input
-                            value={ellipsoidInput}
-                            onChange={(e) => setEllipsoidInput(e.target.value)}
-                            placeholder="Ellipsoid Code"
-                            className="w-full bg-gray-800 text-white p-2 rounded-lg"
-                        />
+                    {/* --- Ellipsoid to Geoid Card --- */}
+                    <div className="bg-gray-800/50 p-4 rounded-lg space-y-4 border border-gray-700">
+                        <h3 className="text-lg font-semibold text-blue-300">Ellipsoid to Geoid</h3>
+                        <div>
+                            <label htmlFor="ellipsoidCode" className="block mb-1 text-sm font-medium text-gray-400">Ellipsoid Code</label>
+                            <input
+                                id="ellipsoidCode"
+                                value={ellipsoidInput}
+                                onChange={(e) => setEllipsoidInput(e.target.value)}
+                                placeholder="Enter Ellipsoid Code"
+                                className="w-full bg-gray-700 text-white p-2 rounded-lg"
+                            />
+                        </div>
                         <button
                             onClick={handleEllipsoid}
                             disabled={loading.ellipsoid}
@@ -244,6 +288,8 @@ function DemoApp() {
                         )}
                     </div>
                 </div>
+
+                {/* --- Data Display Sections --- */}
                 <div className="space-y-8">
                     <div>
                         <h2 className="text-xl md:text-2xl font-semibold text-gray-200 mb-3">Routing Data</h2>

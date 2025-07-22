@@ -8,31 +8,22 @@ import { useSession } from 'next-auth/react';
 
 function BhuvanPersonal() {
     const [query, setQuery] = useState(
-        'SELECT product_name, theme_name, ST_AsText(geom) AS wkt_geometry FROM bhuvan_land_cover LIMIT 10;'
+        'SELECT current_database();'
     );
-    // State to store the results fetched from the query API.
     const [queryResult, setQueryResult] = useState(null);
-    // State to manage the loading status of the query execution.
     const [isQueryLoading, setIsQueryLoading] = useState(false);
-    // State to store any error messages from the query execution.
     const [queryError, setQueryError] = useState(null);
 
-    // State for the database creation process.
     const [isDbCreating, setIsDbCreating] = useState(false);
     const [dbCreationError, setDbCreationError] = useState(null);
     const [dbCreationSuccess, setDbCreationSuccess] = useState('');
 
 
-    // useSession hook from next-auth to get session details.
     const { data: session, status: sessionStatus } = useSession();
-    // Safely access the user ID from the session object.
     const userId = session?.user_id;
 
     const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
-    /**
-     * Handles the creation of a user-specific database by calling the backend API.
-     */
     const handleCreateDb = async () => {
         if (!userId) {
             setDbCreationError('User session not found. Please log in.');
