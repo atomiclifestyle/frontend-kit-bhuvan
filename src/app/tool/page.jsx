@@ -2,7 +2,6 @@
 
 import 'ol/ol.css';
 import { Map, View } from 'ol';
-import { GeoJSON } from 'ol/format';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
 import OSM from 'ol/source/OSM';
@@ -12,10 +11,12 @@ import { Draw, Select, Modify } from 'ol/interaction';
 import { Circle as CircleStyle, Fill, Stroke, Style, Text } from 'ol/style';
 import { useEffect, useRef, useState } from 'react';
 import { Rnd } from 'react-rnd';
+import { getRouting } from '@/utils/bhuvan-api-methods';
+import { useSession } from 'next-auth/react';
+import GeoJSON from 'ol/format/GeoJSON';
+import { toLonLat } from 'ol/proj';
 
-// --- Helper Components ---
-
-const PointEditor = ({ selectedFeature, onUpdateFeatureName, onDeleteFeature, featureName, setFeatureName }) => {
+const PointEditor = ({ selectedFeature, onUpdateFeatureName, onDeleteFeature, featureName, setFeatureName, onCreatePath, pointCount }) => {
   useEffect(() => {
     if (selectedFeature) {
       const name = selectedFeature.get('name') || '';
@@ -44,17 +45,17 @@ const PointEditor = ({ selectedFeature, onUpdateFeatureName, onDeleteFeature, fe
   }
 
   return (
-    <div className="p-4 bg-white rounded-lg">
-      <h3 className="text-lg font-bold mb-4">Point Properties</h3>
+    <div className="p-4 rounded-lg bg-[#000010]">
+      <h3 className="text-lg font-bold mb-4 text-gray-100">Point Properties</h3>
       <div className="mb-3">
-        <label className="block text-sm font-medium text-gray-700 capitalize">Name</label>
+        <label className="block text-sm font-medium text-gray-500 capitalize">Name</label>
         <input
           type="text"
           name="name"
           placeholder="Enter point name"
           value={featureName}
           onChange={handleNameChange}
-          className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          className="mt-1 block w-full px-3 py-2 bg-white text-gray-500 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
         />
       </div>
       <button
@@ -73,12 +74,12 @@ const PointEditor = ({ selectedFeature, onUpdateFeatureName, onDeleteFeature, fe
   );
 };
 
-// --- Main App Component ---
 
 export default function App() {
   const mapRef = useRef();
   const [map, setMap] = useState(null);
   const [vectorSource] = useState(new VectorSource());
+  const [pathSource] = useState(new VectorSource());
   const [selectedFeature, setSelectedFeature] = useState(null);
   const [featureName, setFeatureName] = useState('');
   const drawInteractionRef = useRef(null);
@@ -86,6 +87,10 @@ export default function App() {
   const [activeTool, setActiveTool] = useState(null);
   const [isMounted, setIsMounted] = useState(false);
   const vectorLayerRef = useRef(null);
+  const pathLayerRef = useRef(null);
+  const [pointCount, setPointCount] = useState(0);
+  const { data: session, status } = useSession();
+  const [isPathLoading, setIsPathLoading] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -117,12 +122,28 @@ export default function App() {
     return style;
   };
 
+  const pathStyleFunction = () => {
+    return new Style({
+      stroke: new Stroke({
+        color: '#0000ff',
+        width: 4,
+        opacity: 0.7,
+      }),
+    });
+  };
+
   useEffect(() => {
     const vectorLayer = new VectorLayer({
       source: vectorSource,
       style: styleFunction,
     });
     vectorLayerRef.current = vectorLayer;
+
+    const pathLayer = new VectorLayer({
+      source: pathSource,
+      style: pathStyleFunction,
+    });
+    pathLayerRef.current = pathLayer;
 
     const initialMap = new Map({
       target: mapRef.current,
@@ -131,9 +152,10 @@ export default function App() {
           source: new OSM(),
         }),
         vectorLayer,
+        pathLayer,
       ],
       view: new View({
-        center: fromLonLat([-98.5795, 39.8283]),
+        center: fromLonLat([78.9629, 20.5937]),
         zoom: 4,
       }),
     });
@@ -167,7 +189,7 @@ export default function App() {
     setMap(initialMap);
 
     return () => initialMap.setTarget(undefined);
-  }, [vectorSource]);
+  }, [vectorSource, pathSource]);
 
   useEffect(() => {
     if (vectorLayerRef.current && selectedFeature) {
@@ -176,6 +198,18 @@ export default function App() {
       map?.render();
     }
   }, [selectedFeature, map]);
+
+  useEffect(() => {
+    const updatePointCount = () => {
+      setPointCount(vectorSource.getFeatures().length);
+    };
+    vectorSource.on('addfeature', updatePointCount);
+    vectorSource.on('removefeature', updatePointCount);
+    return () => {
+      vectorSource.un('addfeature', updatePointCount);
+      vectorSource.un('removefeature', updatePointCount);
+    };
+  }, [vectorSource]);
 
   const addDrawInteraction = () => {
     if (activeTool) {
@@ -209,6 +243,7 @@ export default function App() {
       selectInteractionRef.current.setActive(true);
       vectorSource.changed();
       map?.render();
+      pathSource.clear();
     });
 
     map.addInteraction(drawInteractionRef.current);
@@ -235,43 +270,93 @@ export default function App() {
       setSelectedFeature(null);
       vectorSource.changed();
       map?.render();
+      pathSource.clear();
     }
   };
 
+  const routeStyle = new Style({
+  stroke: new Stroke({
+    color: '#ff0000',
+    width: 4,
+    lineDash: [10, 10], // optional dashed line
+  }),
+});
 
-    const handleExportGeoJSON = () => {
-    const features = vectorSource.getFeatures();
-    if (features.length === 0) {
-        alert("There are no points on the map to export.");
-        return;
+  const handleCreatePath = async () => {
+    setIsPathLoading(true);
+
+    const pointFeatures = vectorSource.getFeatures();
+
+    if (pointFeatures.length !== 2) {
+      alert("Please place exactly two points to create a path.");
+      setIsPathLoading(false);
+      return;
     }
 
-    // 1. Create a GeoJSON format object
-    const geojsonFormat = new GeoJSON();
-
-    // 2. Convert the OpenLayers features to a GeoJSON string.
-    //    It's crucial to transform the coordinates from the map's projection
-    //    ('EPSG:3857') to the standard GeoJSON projection ('EPSG:4326').
-    const geojsonString = geojsonFormat.writeFeatures(features, {
-        featureProjection: 'EPSG:3857', // The projection your map is currently using
-        dataProjection: 'EPSG:4326',    // The standard projection for GeoJSON
+    const coords = pointFeatures.map((f) => {
+      const mercatorCoords = f.getGeometry().getCoordinates();
+      return toLonLat(mercatorCoords); 
     });
 
-    // 3. Create a Blob to hold the data
-    const blob = new Blob([geojsonString], { type: 'application/json' });
+    const [lon1, lat1] = coords[0];
+    const [lon2, lat2] = coords[1];
 
-    // 4. Create a temporary link element and trigger the download
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'annotated_points.geojson';
-    document.body.appendChild(a); // Required for Firefox
-    a.click();
+    try {
+      const routingResult = await getRouting(lat1, lon1, lat2, lon2, session.user_id);
 
-    // 5. Clean up by removing the temporary link and URL
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    };
+      if (routingResult.error) {
+        alert("Routing failed: " + routingResult.error);
+        return;
+      }
+
+      const format = new GeoJSON();
+
+      const routeFeatures = format.readFeatures(routingResult, {
+        dataProjection: 'EPSG:4326',
+        featureProjection: map.getView().getProjection(),
+      });
+
+      pathSource.clear();
+      routeFeatures.forEach(f => f.setStyle(routeStyle));
+      pathSource.addFeatures(routeFeatures);
+      map.render();
+    } catch (err) {
+      console.error("Path creation failed:", err);
+      alert("Unexpected error during routing.");
+    } finally {
+      setIsPathLoading(false);
+    }
+  };
+
+  const handleExportGeoJSON = () => {
+  const pointFeatures = vectorSource.getFeatures();
+  const pathFeatures = pathSource.getFeatures();
+
+  if (pointFeatures.length === 0 && pathFeatures.length === 0) {
+    alert("There are no features on the map to export.");
+    return;
+  }
+
+  const allFeatures = [...pointFeatures, ...pathFeatures];
+
+  const geojsonFormat = new GeoJSON();
+
+  const geojsonString = geojsonFormat.writeFeatures(allFeatures, {
+    featureProjection: 'EPSG:3857', // Map projection
+    dataProjection: 'EPSG:4326',    // GeoJSON standard
+  });
+
+  const blob = new Blob([geojsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'exported_features.geojson';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="flex h-screen bg-gray-100 font-sans">
@@ -288,8 +373,8 @@ export default function App() {
           bounds="parent"
           className="bg-gray-50 rounded-lg shadow-2xl border border-gray-200"
         >
-          <div className="p-5 flex flex-col h-full">
-            <h2 className="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Tools</h2>
+          <div className="p-5 flex flex-col h-full bg-[#000010] text-gray-100">
+            <h2 className="text-xl font-bold mb-4 text-gray-100 border-b pb-2">Tools</h2>
             <div className="mb-4">
               <button
                 onClick={addDrawInteraction}
@@ -305,17 +390,25 @@ export default function App() {
                 selectedFeature={selectedFeature}
                 onUpdateFeatureName={handleUpdateFeatureName}
                 onDeleteFeature={handleDeleteFeature}
+                onCreatePath={handleCreatePath}
                 featureName={featureName}
                 setFeatureName={setFeatureName}
+                pointCount={pointCount}
               />
             </div>
             <div className="mb-4">
-                <button
-                    onClick={handleExportGeoJSON}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200"
-                >
-                    💾 Export as GeoJSON
-                </button>
+              <button
+                onClick={handleExportGeoJSON}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200"
+              >
+                Export as GeoJSON
+              </button>
+              <button
+                onClick={handleCreatePath}
+                className="mt-2 mb-4 w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              >
+                {isPathLoading ? 'Loading...' : 'Create Path'}
+              </button>
             </div>
           </div>
         </Rnd>
