@@ -7,6 +7,23 @@ const ApiIcon = () => (
         <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
     </svg>
 );
+const MapIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-10 w-10"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M9 20l-5-2V4l5 2m0 14l6-2V6l-6 2m6 12l5-2V4l-5 2"
+    />
+  </svg>
+);
+
 const DatabaseIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7a8 8 0 0116 0" />
@@ -86,6 +103,14 @@ const MainPage = () => {
                 </div>
                 <h3 className="text-xl font-bold text-gray-100 mb-2">Personal Database</h3>
                 <p className="text-gray-400 text-sm">Manage your own private datasets and saved queries.</p>
+            </a>
+
+            <a href="/create-layer" className="group bg-gray-800/50 border border-gray-700 rounded-xl p-6 text-center hover:bg-gray-800 hover:border-blue-500 transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-blue-500/20">
+                <div className="flex justify-center mb-3 text-blue-400 group-hover:text-blue-300 transition-colors">
+                    <MapIcon />
+                </div>
+                <h3 className="text-xl font-bold text-gray-100 mb-2">Create Layers</h3>
+                <p className="text-gray-400 text-sm">Create and export your own map layers without code.</p>
             </a>
 
             <a
