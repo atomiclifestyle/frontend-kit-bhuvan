@@ -15,29 +15,8 @@ import { Rnd } from 'react-rnd';
 import { getRouting } from '@/utils/bhuvan-api-methods';
 import { useSession } from 'next-auth/react';
 import GeoJSON from 'ol/format/GeoJSON';
-import { toast } from 'react-toastify';
-import { createXYZ } from 'ol/tilegrid';
 
 const GEOAPIFY_API_KEY = process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY || '';
-
-// --- WMS Layer Definitions ---
-// Define all available WMS layers here. This makes them easy to manage.
-const availableLayers = [
-  {
-    id: 'bhuvan_drainage',
-    name: 'BDRAIN', // Technical name for the WMS request
-    url: 'https://bhuvanmaps.nrsc.gov.in/vec1wms/gwc/service/wms',
-    label: 'Bhuvan Drainage Network', // User-friendly label for the checkbox
-  },
-  {
-    id: 'bhuvan_basin',
-    name: 'hydrology:BASIN',
-    url: 'https://basemap.nationalmap.gov/arcgis/services/USGSImageryTopo/MapServer/WmsServer',
-    label: 'Bhuvan Basin Map',
-  },
-  // Add more predefined layers here as needed
-];
-
 
 const PointEditor = ({ selectedFeature, onUpdateFeatureName, onDeleteFeature, featureName, setFeatureName }) => {
   useEffect(() => {
@@ -139,8 +118,7 @@ const PolygonEditor = ({ selectedPolygon, onUpdatePolygonName, onDeletePolygon, 
   );
 };
 
-export default function App() {
-  const initialData = null;
+export default function MapContainer({ initialData = null }) {
   const mapRef = useRef();
   const [map, setMap] = useState(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -164,14 +142,14 @@ export default function App() {
   const [externalLayerUrl, setExternalLayerUrl] = useState('');
   const [externalVectorLayers, setExternalVectorLayers] = useState([]);
   
-  // --- State for WMS Layers ---
-  const [wmsLayers, setWmsLayers] = useState([]); // Stores active OpenLayers layer objects
-  const [checkedState, setCheckedState] = useState({}); // Stores the checked status of each checkbox by its ID
+  const [wmsLayerUrl, setWmsLayerUrl] = useState('');
+  const [wmsLayerName, setWmsLayerName] = useState('');
+  const [wmsLayers, setWmsLayers] = useState([]);
 
   const drawInteractionRef = useRef(null);
   const selectInteractionRef = useRef(null);
   const [activeTool, setActiveTool] = useState(null);
-  
+
   const [revision, setRevision] = useState(0);
 
   useEffect(() => {
@@ -277,23 +255,16 @@ export default function App() {
   // New useEffect to load initial state from props
   useEffect(() => {
     if (map && initialData) {
-      const { view, wmsLayers: initialWmsLayers, geoJsonUrls, annotations } = initialData.mapState;
+      const { view, wmsLayers, geoJsonUrls, annotations } = initialData.mapState;
 
       // 1. Set View
       map.getView().setCenter(fromLonLat(view.center));
       map.getView().setZoom(view.zoom);
 
-      // 2. Load WMS Layers and update checkbox state
-      const initialCheckedState = {};
-      initialWmsLayers.forEach(wmsInfo => {
-        // Find the full layer definition from our availableLayers constant
-        const layerDefinition = availableLayers.find(l => l.name === wmsInfo.layerName);
-        if (layerDefinition) {
-            handleAddWmsLayer(layerDefinition); // Add the layer to the map
-            initialCheckedState[layerDefinition.id] = true; // Mark its checkbox as checked
-        }
+      // 2. Load WMS Layers programmatically
+      wmsLayers.forEach(wmsInfo => {
+        addWmsLayer(wmsInfo.url, wmsInfo.layerName, true);
       });
-      setCheckedState(initialCheckedState); // Set the initial state for all checkboxes at once
 
       // 3. Load External GeoJSON Layers programmatically
       geoJsonUrls.forEach(url => {
@@ -462,7 +433,7 @@ export default function App() {
     setIsPathLoading(true);
     const pointFeatures = vectorSource.getFeatures();
     if (pointFeatures.length !== 2) {
-      toast.warn("Please place exactly two points to create a path.");
+      alert("Please place exactly two points to create a path.");
       setIsPathLoading(false);
       return;
     }
@@ -472,7 +443,7 @@ export default function App() {
     try {
       const routingResult = await getRouting(lat1, lon1, lat2, lon2, session.user_id);
       if (routingResult.error) {
-        toast.error("Routing failed: " + routingResult.error);
+        alert("Routing failed: " + routingResult.error);
         return;
       }
       const format = new GeoJSON();
@@ -484,7 +455,7 @@ export default function App() {
       pathSource.addFeatures(routeFeatures);
     } catch (err) {
       console.error("Path creation failed:", err);
-      toast.error("Unexpected error during routing.");
+      alert("Unexpected error during routing.");
     } finally {
       setIsPathLoading(false);
     }
@@ -501,7 +472,7 @@ export default function App() {
         if (source) allFeatures = [...allFeatures, ...source.getFeatures()];
     });
     if (allFeatures.length === 0) {
-      toast.info("There are no vector features on the map to export.");
+      alert("There are no vector features on the map to export.");
       return;
     }
     const geojsonFormat = new GeoJSON();
@@ -520,14 +491,15 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
+  // Refactored to be callable programmatically
   const addExternalLayer = (url, isInitialLoad = false) => {
     if (!url || !map) {
-      if (!isInitialLoad) toast.error("Please enter a valid GeoJSON URL.");
+      if (!isInitialLoad) alert("Please enter a valid GeoJSON URL.");
       return;
     }
     const externalVectorSource = new VectorSource({ url, format: new GeoJSON() });
     externalVectorSource.on('featuresloaderror', () => {
-        if (!isInitialLoad) toast.error(`Error loading features from: ${url}. Please check the URL and CORS policy.`);
+        if (!isInitialLoad) alert(`Error loading features from: ${url}. Please check the URL and CORS policy.`);
     });
     const externalVectorLayer = new VectorLayer({
       source: externalVectorSource,
@@ -546,184 +518,73 @@ export default function App() {
     if (!isInitialLoad) setExternalLayerUrl('');
   };
 
-const handleAddWmsLayer = (layerInfo) => {
-  if (!layerInfo.url || !layerInfo.name || !map) {
-    toast.error("Layer information is missing.");
-    return;
-  }
-
-  // Prevent adding the same layer twice
-  const existingLayer = wmsLayers.find((l) => l.layerName === layerInfo.name);
-  if (existingLayer) {
-    toast.info(`Layer '${layerInfo.name}' is already added.`);
-    return;
-  }
-
-  const baseUrl = layerInfo.url.split('?')[0];
-  const wmsSource = new TileWMS({
-    url: baseUrl,
-    params: {
-      LAYERS: layerInfo.name,
-      VERSION: '1.1.1',
-      TRANSPARENT: true,
-      FORMAT: 'image/png',
-      STYLES: '',
-      SRS: 'EPSG:3857',
-      WIDTH: 256,
-      HEIGHT: 256,
-    },
-    serverType: 'geoserver',
-    transition: 0,
-    tileGrid: createXYZ({
-      tileSize: 256,
-      extent: map.getView().getProjection().getExtent(), // Align with map's extent
-    }),
-    crossOrigin: 'anonymous', // Handle CORS
-  });
-
-  // Log tile URLs for debugging
-  wmsSource.on('tileloadstart', (event) => {
-    const tile = event.tile;
-    const tileCoord = tile.getTileCoord();
-    const tileUrl = wmsSource.getTileUrlFunction()(
-      tileCoord,
-      1, // Pixel ratio
-      map.getView().getProjection()
-    );
-    console.log(`WMS Request URL for ${layerInfo.name}:`, tileUrl);
-  });
-
-  // Handle tile load errors
-  wmsSource.on('tileloaderror', (event) => {
-    console.error(`Tile load error for layer '${layerInfo.name}':`, event);
-    toast.error(`Failed to load WMS layer '${layerInfo.name}'. Check console for details.`);
-    handleRemoveWmsLayer(layerInfo.name);
-  });
-
-  const wmsLayer = new TileLayer({
-    source: wmsSource,
-    zIndex: 10, // Render above base map
-    opacity: 1.0, // Full visibility
-  });
-
-  map.addLayer(wmsLayer);
-  setWmsLayers((prev) => [
-    ...prev,
-    { url: baseUrl, layerName: layerInfo.name, layer: wmsLayer },
-  ]);
-
-  // Force refresh to ensure tiles are requested
-  wmsSource.refresh();
-};
-
-  const handleRemoveWmsLayer = (layerName) => {
-    if (!layerName || !map) return;
-
-    const layerToRemove = wmsLayers.find(l => l.layerName === layerName);
-    if (layerToRemove) {
-      map.removeLayer(layerToRemove.layer);
-      setWmsLayers(prev => prev.filter(l => l.layerName !== layerName));
+  // Refactored to be callable programmatically
+  const addWmsLayer = (url, name, isInitialLoad = false) => {
+    if (!url || !name || !map) {
+      if (!isInitialLoad) alert("Please enter a valid WMS Service URL and Layer Name.");
+      return;
     }
-  };
-
-  const handleCheckboxChange = (layer) => {
-    const isChecked = !checkedState[layer.id];
-
-    // Update the checkbox UI state
-    setCheckedState(prevState => ({
-      ...prevState,
-      [layer.id]: isChecked,
-    }));
-
-    // Add or remove the layer from the map
-    if (isChecked) {
-      handleAddWmsLayer(layer);
-    } else {
-      handleRemoveWmsLayer(layer.name);
+    const baseUrl = url.split('?')[0];
+    const wmsSource = new TileWMS({
+        url: baseUrl,
+        params: { 'LAYERS': name, 'TILED': true, 'VERSION': '1.1.1' },
+        serverType: 'geoserver',
+        transition: 0,
+    });
+    wmsSource.on('tileloaderror', () => {
+        if (!isInitialLoad) {
+            alert(`Error loading WMS tile for layer '${name}'. Check URL, layer name, and CORS policy.`);
+            const layerToRemove = map.getLayers().getArray().find(l => l.getSource() === wmsSource);
+            if (layerToRemove) map.removeLayer(layerToRemove);
+        }
+    });
+    const wmsLayer = new TileLayer({ source: wmsSource });
+    map.addLayer(wmsLayer);
+    setWmsLayers(prev => [...prev, { url: baseUrl, layerName: name, layer: wmsLayer }]);
+    if (!isInitialLoad) {
+      setWmsLayerUrl('');
+      setWmsLayerName('');
     }
   };
 
   const handleSaveMap = async () => {
-      let projectName = '';
-      const inputPromise = new Promise((resolve) => {
-          toast.info(
-              <div>
-                  <input
-                      type="text"
-                      placeholder="Enter map project name"
-                      onChange={(e) => (projectName = e.target.value)}
-                      className="border p-2 w-full text-gray-800"
-                  />
-                  <button
-                      onClick={() => resolve(projectName)}
-                      className="mt-2 bg-blue-500 text-white p-2 rounded w-full"
-                  >
-                      Save
-                  </button>
-              </div>,
-              {
-                  autoClose: false,
-                  closeOnClick: false,
-                  draggable: false,
-                  containerId: 'A' // Use a container to prevent auto-closing on other toasts
-              }
-          );
+    const projectName = prompt("Please enter a name for your map project:");
+    if (!projectName) return;
+    if (!map) {
+      alert("Map is not ready.");
+      return;
+    }
+    const view = map.getView();
+    const mapState = {
+      view: {
+        center: toLonLat(view.getCenter()),
+        zoom: view.getZoom(),
+      },
+      wmsLayers: wmsLayers.map(l => ({ url: l.url, layerName: l.layerName })),
+      geoJsonUrls: externalVectorLayers.map(layer => layer.getSource().getUrl()),
+      annotations: new GeoJSON().writeFeaturesObject(
+        [
+          ...vectorSource.getFeatures(),
+          ...polygonSource.getFeatures(),
+          ...pathSource.getFeatures(),
+        ],
+        { featureProjection: 'EPSG:3857', dataProjection: 'EPSG:4326' }
+      ),
+    };
+    try {
+      const response = await fetch('/api/map/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectName, mapState }),
       });
-
-      projectName = await inputPromise;
-      toast.dismiss(); // Close the input toast
-
-      if (!projectName) {
-          toast.error('Project name is required');
-          return;
-      }
-
-      if (!map) {
-          toast.error('Map is not ready');
-          return;
-      }
-
-      const view = map.getView();
-      const mapState = {
-          view: {
-              center: toLonLat(view.getCenter()),
-              zoom: view.getZoom(),
-          },
-          wmsLayers: wmsLayers.map(l => ({ url: l.url, layerName: l.layerName })),
-          geoJsonUrls: externalVectorLayers.map(layer => layer.getSource().getUrl()),
-          annotations: new GeoJSON().writeFeaturesObject(
-              [
-                  ...vectorSource.getFeatures(),
-                  ...polygonSource.getFeatures(),
-                  ...pathSource.getFeatures(),
-              ],
-              { featureProjection: 'EPSG:3857', dataProjection: 'EPSG:4326' }
-          ),
-      };
-
-      try {
-          const response = await fetch('/api/map/save', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ projectName, mapState }),
-          });
-          const result = await response.json();
-          if (!response.ok) throw new Error(result.message || 'Failed to save map.');
-          const shareableLink = `${window.location.origin}/map/view/${result.projectId}`;
-          toast.success(
-              <div>
-                  Map saved successfully!
-                  <br />
-                  <a href={shareableLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">
-                      Share this link
-                  </a>
-              </div>,
-              { autoClose: 10000 }
-          );
-      } catch (error) {
-          console.error("Error saving map:", error);
-          toast.error(`Error saving map: ${error.message}`);
-      }
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Failed to save map.');
+      const shareableLink = `${window.location.origin}/map/view/${result.projectId}`;
+      alert(`Map saved successfully!\n\nShare this link:\n${shareableLink}`);
+    } catch (error) {
+      console.error("Error saving map:", error);
+      alert(`Error saving map: ${error.message}`);
+    }
   };
 
   return (
@@ -746,40 +607,30 @@ const handleAddWmsLayer = (layerInfo) => {
                 {activeTool === 'Polygon' ? 'Cancel Drawing' : 'Add Polygon'}
               </button>
             </div>
-            
             <div className="mt-4 pt-4 border-t border-gray-600">
-                <h3 className="text-lg font-bold mb-2 text-gray-100">External Layers</h3>
-                <div className="mb-3">
-                  <label className="block text-sm font-medium text-gray-500">GeoJSON URL</label>
-                  <input type="text" placeholder="https://.../data.geojson" value={externalLayerUrl} onChange={(e) => setExternalLayerUrl(e.target.value)} className="mt-1 block w-full px-3 py-2 bg-white text-gray-500 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
-                </div>
-                <button onClick={() => addExternalLayer(externalLayerUrl)} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
-                  Add GeoJSON Layer
-                </button>
+                 <h3 className="text-lg font-bold mb-2 text-gray-100">External Layers</h3>
+                 <div className="mb-3">
+                    <label className="block text-sm font-medium text-gray-500">GeoJSON URL</label>
+                    <input type="text" placeholder="https://.../data.geojson" value={externalLayerUrl} onChange={(e) => setExternalLayerUrl(e.target.value)} className="mt-1 block w-full px-3 py-2 bg-white text-gray-500 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                 </div>
+                 <button onClick={() => addExternalLayer(externalLayerUrl)} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
+                    Add GeoJSON Layer
+                 </button>
             </div>
-
-            {/* --- WMS Layer Checkbox Section --- */}
             <div className="mt-4 pt-4 border-t border-gray-600">
-              <h3 className="text-lg font-bold mb-3 text-gray-100">WMS Layers</h3>
-              <div className="space-y-2">
-                {availableLayers.map((layer) => (
-                  <div key={layer.id} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id={layer.id}
-                      name={layer.name}
-                      checked={checkedState[layer.id] || false}
-                      onChange={() => handleCheckboxChange(layer)}
-                      className="h-4 w-4 text-teal-600 border-gray-400 rounded focus:ring-teal-500 cursor-pointer"
-                    />
-                    <label htmlFor={layer.id} className="ml-2 block text-sm text-gray-300 cursor-pointer">
-                      {layer.label}
-                    </label>
-                  </div>
-                ))}
-              </div>
+                 <h3 className="text-lg font-bold mb-2 text-gray-100">WMS Layers</h3>
+                 <div className="mb-3">
+                    <label className="block text-sm font-medium text-gray-500">WMS Service URL</label>
+                    <input type="text" placeholder="https://bhuvanmaps.nrsc.gov.in/..." value={wmsLayerUrl} onChange={(e) => setWmsLayerUrl(e.target.value)} className="mt-1 block w-full px-3 py-2 bg-white text-gray-500 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                 </div>
+                 <div className="mb-3">
+                    <label className="block text-sm font-medium text-gray-500">Layer Name</label>
+                    <input type="text" placeholder="e.g., BDRAIN" value={wmsLayerName} onChange={(e) => setWmsLayerName(e.target.value)} className="mt-1 block w-full px-3 py-2 bg-white text-gray-500 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                 </div>
+                 <button onClick={() => addWmsLayer(wmsLayerUrl, wmsLayerName)} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded">
+                    Add WMS Layer
+                 </button>
             </div>
-
             <div className="flex-grow mt-4">
               {pointCount > 0 && <PointEditor selectedFeature={selectedFeature} onUpdateFeatureName={handleUpdateFeatureName} onDeleteFeature={handleDeleteFeature} featureName={featureName} setFeatureName={setFeatureName} />}
               {selectedPolygon && <PolygonEditor selectedPolygon={selectedPolygon} onUpdatePolygonName={handleUpdatePolygonName} onDeletePolygon={handleDeletePolygon} polygonName={polygonName} setPolygonName={setPolygonName} />}

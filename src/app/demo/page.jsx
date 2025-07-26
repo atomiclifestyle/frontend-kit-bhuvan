@@ -117,7 +117,7 @@ function DemoApp() {
         <div className="relative min-h-screen bg-gray-900 text-gray-100 p-6 md:p-8">
             <SpaceBackground />
             <div className="relative z-10 max-w-5xl mx-auto">
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-teal-300 mb-5">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-teal-300 mb-5">
                     Bhuvan API Demo
                 </h1>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
