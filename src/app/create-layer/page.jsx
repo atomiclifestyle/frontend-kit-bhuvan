@@ -17,6 +17,7 @@ import { useSession } from 'next-auth/react';
 import GeoJSON from 'ol/format/GeoJSON';
 import { toast } from 'react-toastify';
 import { createXYZ } from 'ol/tilegrid';
+import 'react-toastify/dist/ReactToastify.css';
 
 const GEOAPIFY_API_KEY = process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY || '';
 
@@ -157,6 +158,8 @@ export default function App() {
   const [pathSource] = useState(new VectorSource());
   const pathLayerRef = useRef(null);
   const [isPathLoading, setIsPathLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [projectName, setProjectName] = useState('');
 
   const [externalLayerUrl, setExternalLayerUrl] = useState('');
   const [externalVectorLayers, setExternalVectorLayers] = useState([]);
@@ -641,86 +644,83 @@ const handleAddWmsLayer = (layerInfo) => {
   };
 
   const handleSaveMap = async () => {
-      let projectName = '';
-      const inputPromise = new Promise((resolve) => {
-          toast.info(
-              <div>
-                  <input
-                      type="text"
-                      placeholder="Enter map project name"
-                      onChange={(e) => (projectName = e.target.value)}
-                      className="border p-2 w-full text-gray-800"
-                  />
-                  <button
-                      onClick={() => resolve(projectName)}
-                      className="mt-2 bg-blue-500 text-white p-2 rounded w-full"
-                  >
-                      Save
-                  </button>
-              </div>,
-              {
-                  autoClose: false,
-                  closeOnClick: false,
-                  draggable: false,
-                  containerId: 'A' // Use a container to prevent auto-closing on other toasts
-              }
-          );
-      });
+    console.log("save map 1: starting");
 
-      projectName = await inputPromise;
-      toast.dismiss(); // Close the input toast
+    // Create a promise to capture the project name from the modal
+    const inputPromise = new Promise((resolve) => {
+      console.log("save map 2: opening modal");
+      setIsModalOpen(true);
 
-      if (!projectName) {
-          toast.error('Project name is required');
-          return;
-      }
-
-      if (!map) {
-          toast.error('Map is not ready');
-          return;
-      }
-
-      const view = map.getView();
-      const mapState = {
-          view: {
-              center: toLonLat(view.getCenter()),
-              zoom: view.getZoom(),
-          },
-          wmsLayers: wmsLayers.map(l => ({ url: l.url, layerName: l.layerName })),
-          geoJsonUrls: externalVectorLayers.map(layer => layer.getSource().getUrl()),
-          annotations: new GeoJSON().writeFeaturesObject(
-              [
-                  ...vectorSource.getFeatures(),
-                  ...polygonSource.getFeatures(),
-                  ...pathSource.getFeatures(),
-              ],
-              { featureProjection: 'EPSG:3857', dataProjection: 'EPSG:4326' }
-          ),
+      // Functions to handle save and cancel
+      window.handleModalSave = () => {
+        console.log("save button clicked, projectName:", projectName);
+        setIsModalOpen(false);
+        resolve(projectName);
       };
 
-      try {
-          const response = await fetch('/api/map/save', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ projectName, mapState }),
-          });
-          const result = await response.json();
-          if (!response.ok) throw new Error(result.message || 'Failed to save map.');
-          const shareableLink = `${window.location.origin}/map/view/${result.projectId}`;
-          toast.success(
-              <div>
-                  Map saved successfully!
-                  <br />
-                  <a href={shareableLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">
-                      Share this link
-                  </a>
-              </div>,
-              { autoClose: 10000 }
-          );
-      } catch (error) {
-          console.error("Error saving map:", error);
-          toast.error(`Error saving map: ${error.message}`);
-      }
+      window.handleModalCancel = () => {
+        console.log("cancel button clicked");
+        setIsModalOpen(false);
+        resolve(null);
+      };
+    });
+
+    console.log("save map 3: awaiting inputPromise");
+    const finalProjectName = await inputPromise;
+    console.log("save map 4: promise resolved, projectName:", finalProjectName);
+
+    if (!finalProjectName) {
+      toast.error('Project name is required or save was cancelled');
+      return;
+    }
+
+    if (!map) {
+      toast.error('Map is not ready');
+      return;
+    }
+
+    const view = map.getView();
+    const mapState = {
+      view: {
+        center: toLonLat(view.getCenter()),
+        zoom: view.getZoom(),
+      },
+      wmsLayers: wmsLayers.map((l) => ({ url: l.url, layerName: l.layerName })),
+      geoJsonUrls: externalVectorLayers.map((layer) => layer.getSource().getUrl()),
+      annotations: new GeoJSON().writeFeaturesObject(
+        [
+          ...vectorSource.getFeatures(),
+          ...polygonSource.getFeatures(),
+          ...pathSource.getFeatures(),
+        ],
+        { featureProjection: 'EPSG:3857', dataProjection: 'EPSG:4326' }
+      ),
+    };
+
+    try {
+      console.log("save map 5: sending API request");
+      const response = await fetch('/api/map/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectName: finalProjectName, mapState }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Failed to save map.');
+      const shareableLink = `${window.location.origin}/map/view/${result.projectId}`;
+      toast.success(
+        <div>
+          Map saved successfully!
+          <br />
+          <a href={shareableLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">
+            Share this link
+          </a>
+        </div>,
+        { autoClose: 10000 }
+      );
+    } catch (error) {
+      console.error("Error saving map:", error);
+      toast.error(`Error saving map: ${error.message}`);
+    }
   };
 
   return (
@@ -795,6 +795,37 @@ const handleAddWmsLayer = (layerInfo) => {
             </div>
           </div>
         </Rnd>
+      )}
+            {isModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+            <h2 className="text-lg font-semibold mb-4">Save Map Project</h2>
+            <input
+              type="text"
+              placeholder="Enter map project name"
+              value={projectName}
+              onChange={(e) => {
+                setProjectName(e.target.value);
+                console.log("input changed, projectName:", e.target.value);
+              }}
+              className="border p-2 w-full text-gray-800 mb-4"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={window.handleModalCancel}
+                className="bg-gray-500 text-white p-2 rounded"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={window.handleModalSave}
+                className="bg-blue-500 text-white p-2 rounded"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
