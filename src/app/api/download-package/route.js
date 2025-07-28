@@ -1,12 +1,12 @@
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"; // Ensure this path is correct
 import * as tarStream from "tar-stream";
 import { PassThrough } from "stream";
 import { NextResponse } from "next/server";
 
 // The functions to be bundled
 const functionsContent = (user_id) => `
-const base = "https://bhuvan-kit-backend.onrender.com"
+const base = "https://bhuvan-kit-backend.onrender.com";
 
 export const getRouting = async (lat1, lon1, lat2, lon2) => {
     try {
@@ -19,8 +19,7 @@ export const getRouting = async (lat1, lon1, lat2, lon2) => {
         }
       );
       if (!res.ok) throw new Error('Failed to fetch routing data');
-      const json = await res.json();
-      return json;
+      return await res.json();
     } catch (err) {
       return { error: err.message };
     }
@@ -37,8 +36,7 @@ export const getThematicData = async (lat, lon, year) => {
         }
       );
       if (!res.ok) throw new Error('Failed to fetch thematic data');
-      const json = await res.json();
-      return json;
+      return await res.json();
     } catch (err) {
       return { error: err.message };
     }
@@ -55,8 +53,7 @@ export const villageGeocoding = async (category) => {
         }
       );
       if (!res.ok) throw new Error('Failed to add POI');
-      const json = await res.json();
-      return json;
+      return await res.json();
     } catch (err) {
       return { error: err.message };
     }
@@ -74,7 +71,6 @@ export const getEllipsoid = async (id) => {
       );
       if (!res.ok) throw new Error('Failed to download ellipsoid file');
       
-      // Note: This function is designed for browser environments
       if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
@@ -87,7 +83,6 @@ export const getEllipsoid = async (id) => {
         window.URL.revokeObjectURL(url);
         return { success: true };
       } else {
-        // For Node.js, return the raw response or handle differently
         return { warning: 'getEllipsoid is browser-only; use in a browser environment or fetch the blob directly', data: await res.text() };
       }
     } catch (err) {
@@ -108,8 +103,7 @@ export const createUser = async () => {
         }
       );
       if (!res.ok) throw new Error('Failed');
-      const json = await res.json();
-      return json;
+      return await res.json();
     } catch (err) {
       return { error: err.message };
     }
@@ -125,14 +119,12 @@ export const executeQuery = async (query) => {
             'Content-Type': 'application/json',
             'x-user-id': '${user_id}'
           },
-          body: {
-              query: JSON.stringify({ query })
-          }
+          // FIX: The entire body object must be stringified.
+          body: JSON.stringify({ query: query })
         }
       );
       if (!res.ok) throw new Error('Failed');
-      const json = await res.json();
-      return json;
+      return await res.json();
     } catch (err) {
       return { error: err.message };
     }
@@ -148,19 +140,16 @@ export const executeCentralQuery = async (query) => {
             'Content-Type': 'application/json',
             'x-user-id': '${user_id}'
           },
-          body: {
-              query: JSON.stringify({ query })
-          }
+          // FIX: The entire body object must be stringified.
+          body: JSON.stringify({ query: query })
         }
       );
       if (!res.ok) throw new Error('Failed');
-      const json = await res.json();
-      return json;
+      return await res.json();
     } catch (err) {
       return { error: err.message };
     }
 };
-
 `;
 
 export async function GET(request) {
@@ -170,17 +159,28 @@ export async function GET(request) {
   }
 
   try {
-    const user_id = session.user_id; 
+    // Note: This relies on the session callback being configured in authOptions.
+    const user_id = session.user_id;
+
+    // FIX: Add a check to ensure user_id exists before packaging.
+    if (!user_id) {
+        console.error("User ID is missing from the session object. Check your NextAuth session callback configuration.");
+        return NextResponse.json(
+            { error: "User ID could not be resolved from session. Cannot generate package." },
+            { status: 500 }
+        );
+    }
+
     const pack = tarStream.pack();
     const stream = new PassThrough();
 
-    // Package.json content for the npm package
     const packageJsonContent = JSON.stringify(
       {
         name: "bhuvan-api",
-        version: "1.0.0",
+        version: "1.0.1",
         description: "Bhuvan API client functions",
         main: "bhuvan-api.js",
+        types: "bhuvan-api.d.ts",
         type: "module",
         keywords: ["bhuvan", "api", "client"],
         author: "Your Name",
@@ -191,16 +191,27 @@ export async function GET(request) {
       2
     );
 
-    // Write files to tar stream with user_id injected into functionsContent
-    pack.entry({ name: "bhuvan-api/package.json" }, packageJsonContent);
-    pack.entry({ name: "bhuvan-api/bhuvan-api.js" }, functionsContent(user_id));
+    const dtsContent = `
+      export function getRouting(lat1: number, lon1: number, lat2: number, lon2: number): Promise<any>;
+      export function getThematicData(lat: number, lon: number, year: string): Promise<any>;
+      export function villageGeocoding(category: string): Promise<any>;
+      export function getEllipsoid(id: string): Promise<any>;
+      export function createUser(): Promise<any>;
+      export function executeQuery(query: string): Promise<any>;
+      export function executeCentralQuery(query: string): Promise<any>;
+      `;
+
+    pack.entry({ name: "package/package.json" }, packageJsonContent);
+    pack.entry({ name: "package/bhuvan-api.js" }, functionsContent(user_id));
+    pack.entry({ name: "package/bhuvan-api.d.ts" }, dtsContent);
+
     pack.finalize();
 
     pack.pipe(stream);
 
     const headers = new Headers();
     headers.set("Content-Type", "application/gzip");
-    headers.set("Content-Disposition", 'attachment; filename="bhuvan-api.tar"');
+    headers.set("Content-Disposition", 'attachment; filename="bhuvan-api.tar.gz"');
 
     return new NextResponse(stream, {
       status: 200,

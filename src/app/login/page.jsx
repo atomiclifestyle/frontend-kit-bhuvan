@@ -70,7 +70,7 @@ const LoginForm = () => {
     <SpaceBackground />
     <div className='w-[90%] md:w-[50%] lg:w-[30%] rounded-2xl shadow-2xl p-10 relative bg-white text-black z-10'>
       <Form {...form}>
-        <h1 className='text-2xl font-semibold text-center m-3'>Login to your Account</h1>
+        <h1 className='text-2xl font-semibold text-center m-3'>Welcome! Login to your Account</h1>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <FormField
             control={form.control}
