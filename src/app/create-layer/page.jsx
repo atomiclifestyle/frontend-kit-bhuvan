@@ -6,6 +6,7 @@ import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
 import VectorTileLayer from "ol/layer/VectorTile";
 import OSM from "ol/source/OSM";
+import XYZ from "ol/source/XYZ";
 import VectorSource from "ol/source/Vector";
 import VectorTileSource from "ol/source/VectorTile";
 import TileWMS from "ol/source/TileWMS";
@@ -94,8 +95,8 @@ const PointEditor = ({
   };
 
   return (
-    <div className="p-4 bg-gray-800 rounded-lg shadow-md">
-      <h3 className="text-lg font-semibold text-white mb-3">Point Editor</h3>
+    <div className="p-4 bg-gray-800 rounded-lg shadow-md space-y-3">
+      <h3 className="text-lg font-semibold text-white">Point Editor</h3>
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-300">Name</label>
         <input
@@ -150,8 +151,8 @@ const PolygonEditor = ({
   };
 
   return (
-    <div className="p-4 bg-gray-800 rounded-lg shadow-md">
-      <h3 className="text-lg font-semibold text-white mb-3">Polygon Editor</h3>
+    <div className="p-4 bg-gray-800 rounded-lg shadow-md space-y-3">
+      <h3 className="text-lg font-semibold text-white">Polygon Editor</h3>
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-300">Name</label>
         <input
@@ -185,6 +186,11 @@ export default function CreateLayerPage() {
   const [map, setMap] = useState(null);
   const [isMounted, setIsMounted] = useState(false);
   const { data: session } = useSession();
+
+  // State and refs for base layer toggling
+  const [baseLayer, setBaseLayer] = useState("osm");
+  const osmLayerRef = useRef(null);
+  const satelliteLayerRef = useRef(null);
 
   const [vectorSource] = useState(new VectorSource());
   const vectorLayerRef = useRef(null);
@@ -283,13 +289,21 @@ export default function CreateLayerPage() {
     });
     pathLayerRef.current = pathLayer;
 
-    const baseLayer = new TileLayer({
+    osmLayerRef.current = new TileLayer({
       source: new OSM(),
+    });
+
+    satelliteLayerRef.current = new TileLayer({
+      source: new XYZ({
+        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        maxZoom: 19,
+        crossOrigin: "anonymous",
+      }),
     });
 
     const initialMap = new Map({
       target: mapRef.current,
-      layers: [baseLayer, vectorLayer, polygonLayer, pathLayer],
+      layers: [osmLayerRef.current, vectorLayer, polygonLayer, pathLayer],
       view: new View({
         center: fromLonLat([78.9629, 20.5937]),
         zoom: 4,
@@ -446,6 +460,19 @@ export default function CreateLayerPage() {
       vectorSource.un("removefeature", updatePointCount);
     };
   }, [vectorSource]);
+
+  const handleBaseLayerChange = (layerType) => {
+    if (layerType === baseLayer || !map) return;
+
+    const layers = map.getLayers();
+    layers.removeAt(0);
+    if (layerType === "osm") {
+      layers.insertAt(0, osmLayerRef.current);
+    } else {
+      layers.insertAt(0, satelliteLayerRef.current);
+    }
+    setBaseLayer(layerType);
+  };
 
   const toggleDraw = (type) => {
     if (activeTool === type) {
@@ -799,13 +826,11 @@ export default function CreateLayerPage() {
       setIsModalOpen(true);
 
       window.handleModalSave = () => {
-        console.log("save button clicked, projectName:", projectName);
         setIsModalOpen(false);
         resolve(projectName);
       };
 
       window.handleModalCancel = () => {
-        console.log("cancel button clicked");
         setIsModalOpen(false);
         resolve(null);
       };
@@ -848,7 +873,6 @@ export default function CreateLayerPage() {
     };
 
     try {
-      console.log("save map 5: sending API request");
       const response = await fetch("/api/map/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -881,30 +905,56 @@ export default function CreateLayerPage() {
 
   return (
     <div className="flex h-screen bg-gray-900 font-sans">
-      <div ref={mapRef} className="w-full h-full cursor-default" />
+      <div ref={mapRef} className="w-full h-full cursor-default relative z-0" />
       {isMounted && (
         <Rnd
           default={{
-            x: window.innerWidth * 0.68,
+            x: window.innerWidth - 380, // Position closer to right edge
             y: 20,
-            width: 350,
+            width: 360,
             height: "auto",
           }}
           minWidth={300}
+          maxWidth={400}
           bounds="parent"
-          className="bg-gray-800 rounded-xl shadow-2xl border border-gray-700"
+          className="bg-gray-800 rounded-xl shadow-2xl border border-gray-700 z-10"
+          style={{ maxHeight: "calc(100vh - 40px)" }}
         >
-          <div
-            className="p-6 flex flex-col h-full text-gray-100 overflow-y-auto"
-            style={{ maxHeight: "90vh" }}
-          >
-            <h2 className="text-2xl font-semibold text-white mb-6 border-b border-gray-700 pb-3">
+          <div className="p-6 flex flex-col h-full text-gray-100 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+            <h2 className="text-2xl font-semibold text-white mb-4 border-b border-gray-700 pb-2">
               Map Toolbox
             </h2>
 
-            <div className="space-y-4">
+            {/* Base Map Toggle Switch */}
+            <div className="mb-6">
+              <h3 className="text-lg font-medium text-gray-200 mb-2">Base Map</h3>
+              <div className="flex bg-gray-700 rounded-lg p-1">
+                <button
+                  onClick={() => handleBaseLayerChange("osm")}
+                  className={`flex-1 py-2 text-sm font-medium rounded-md transition-all duration-300 ${
+                    baseLayer === "osm"
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "text-gray-300 hover:bg-gray-600"
+                  }`}
+                >
+                  Street
+                </button>
+                <button
+                  onClick={() => handleBaseLayerChange("satellite")}
+                  className={`flex-1 py-2 text-sm font-medium rounded-md transition-all duration-300 ${
+                    baseLayer === "satellite"
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "text-gray-300 hover:bg-gray-600"
+                  }`}
+                >
+                  Satellite
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-200 mb-3">
+                <h3 className="text-lg font-medium text-gray-200 mb-2">
                   Drawing Tools
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
@@ -926,15 +976,13 @@ export default function CreateLayerPage() {
                         : "bg-gray-700 hover:bg-orange-600 text-gray-200 hover:text-white"
                     }`}
                   >
-                    {activeTool === "Polygon"
-                      ? "Cancel Drawing"
-                      : "Add Polygon"}
+                    {activeTool === "Polygon" ? "Cancel Drawing" : "Add Polygon"}
                   </button>
                 </div>
               </div>
 
               <div className="pt-4 border-t border-gray-700">
-                <h3 className="text-lg font-medium text-gray-200 mb-3">
+                <h3 className="text-lg font-medium text-gray-200 mb-2">
                   Bhuvan Layers
                 </h3>
                 <div className="space-y-2">
@@ -981,14 +1029,14 @@ export default function CreateLayerPage() {
                 {!selectedPolygon && pointCount <= 0 && (
                   <div className="p-4 text-center text-gray-400">
                     <p>
-                      Select a tool to add a feature or click an existing
-                      feature on the map.
+                      Select a tool to add a feature or click an existing feature
+                      on the map.
                     </p>
                   </div>
                 )}
               </div>
 
-              <div className="pt-4 border-t border-gray-700">
+              <div className="pt-4 border-t border-gray-700 space-y-3">
                 <button
                   onClick={handleCreatePath}
                   disabled={pointCount !== 2}
@@ -1000,13 +1048,13 @@ export default function CreateLayerPage() {
                 </button>
                 <button
                   onClick={handleExportGeoJSON}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg mt-3 transition-all duration-200"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200"
                 >
                   Export as GeoJSON
                 </button>
                 <button
                   onClick={handleSaveMap}
-                  className="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 px-4 rounded-lg mt-3 transition-all duration-200"
+                  className="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200"
                 >
                   Save Map
                 </button>
@@ -1017,7 +1065,7 @@ export default function CreateLayerPage() {
       )}
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
-          <div className="bg-gray-800 p-6 rounded-xl shadow-2xl w-96">
+          <div className="bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-md">
             <h2 className="text-xl font-semibold text-white mb-4">
               Save Map Project
             </h2>
@@ -1025,10 +1073,7 @@ export default function CreateLayerPage() {
               type="text"
               placeholder="Enter map project name"
               value={projectName}
-              onChange={(e) => {
-                setProjectName(e.target.value);
-                console.log("input changed, projectName:", e.target.value);
-              }}
+              onChange={(e) => setProjectName(e.target.value)}
               className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <div className="flex justify-end gap-3 mt-4">
