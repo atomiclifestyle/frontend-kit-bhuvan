@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import Project from "@/models/Project";
 import { executeQuery } from "@/utils/bhuvan-api-methods";
 import { connectToDB } from "@/lib/dbConnect";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function GET(req, { params }) {
   try {
@@ -15,14 +13,7 @@ export async function GET(req, { params }) {
         { status: 400 }
       );
     }
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json(
-        { message: "Not authenticated" },
-        { status: 401 }
-      );
-    }
-    const userId = session.user_id;
+    const userId = process.env.ADMIN_USER_ID || '';
 
     await connectToDB();
     const projectMeta = await Project.findOne({ projectId: projectId }).lean();
